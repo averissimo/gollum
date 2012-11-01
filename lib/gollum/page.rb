@@ -109,6 +109,11 @@ module Gollum
       @doc = nil
       @parent_page = nil
     end
+    
+    # Public: if page can be editable
+    def editable
+      @wiki.readonly?
+    end
 
     # Public: The on-disk filename of the page including extension.
     #
