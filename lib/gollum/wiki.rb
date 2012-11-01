@@ -114,6 +114,9 @@ module Gollum
     self.default_ws_subs = ['_','-']
     self.default_options = {}
 
+    # Flag to reveal if pages can be created, edited or deleted
+    attr_reader :readonly
+
     # The String base path to prefix to internal links. For example, when set
     # to "/wiki", the page "Hobbit" will be linked as "/wiki/Hobbit". Defaults
     # to "/".
@@ -167,6 +170,7 @@ module Gollum
         path             = path.path
       end
       @path          = path
+      @readonly	     = options[:readonly]
       @repo_is_bare  = options[:repo_is_bare]
       @page_file_dir = options[:page_file_dir]
       @access        = options[:access]       || GitAccess.new(path, @page_file_dir, @repo_is_bare)
@@ -186,6 +190,10 @@ module Gollum
       @mathjax = options[:mathjax] || false
       @show_all = options[:show_all] || false
       @collapse_tree = options[:collapse_tree] || false
+    end
+
+    def readonly?
+      @readonly && @readonly == "true"
     end
 
     # Public: check whether the wiki's git repo exists on the filesystem.

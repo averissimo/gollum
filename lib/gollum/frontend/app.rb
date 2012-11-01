@@ -123,6 +123,7 @@ module Precious
       @name = wikip.name
       @path = wikip.path
       wiki = wikip.wiki
+      return mustache :error if wikip.page.editable
       if page = wikip.page
         if wiki.live_preview && page.format.to_s.include?('markdown') && supported_useragent?(request.user_agent)
           live_preview_url = '/livepreview/index.html?page=' + encodeURIComponent(@name)
@@ -143,11 +144,13 @@ module Precious
     end
 
     post '/edit/*' do
+	      
       path      = '/' + clean_url(sanitize_empty_params(params[:path])).to_s
       page_name = CGI.unescape(params[:page])
       wiki      = wiki_new
       page      = wiki.paged(page_name, path, exact = true)
       return if page.nil?
+      return mustache :error if wikip.page.editable
       rename    = params[:rename].to_url if params[:rename]
       name      = rename || page.name
       committer = Gollum::Committer.new(wiki, commit_message)
@@ -169,6 +172,7 @@ module Precious
       name = wikip.name
       wiki = wikip.wiki
       page = wikip.page
+      return mustache :error if wikip.wiki.readonly?
       wiki.delete_page(page, { :message => "Destroyed #{name} (#{page.format})" })
 
       redirect to('/')
@@ -178,7 +182,7 @@ module Precious
       wikip = wiki_page(params[:splat].first.gsub('+', '-'))
       @name = wikip.name.to_url
       @path = wikip.path
-
+      return mustache :error if wikip.wiki.readonly?
       page = wikip.page
       if page
         redirect to("/#{page.escaped_url_path}")
@@ -199,7 +203,7 @@ module Precious
       # write_page is not directory aware so use wiki_options to emulate dir support.
       wiki_options = settings.wiki_options.merge({ :page_file_dir => path })
       wiki         = Gollum::Wiki.new(settings.gollum_path, wiki_options)
-
+      return mustache :error if wiki.readonly?
       begin
         wiki.write_page(name, format, params[:content], commit_message)
         redirect to("/#{clean_url(::File.join(path,name))}")
@@ -218,7 +222,7 @@ module Precious
       shas         = params[:splat].first.split("/")
       sha1         = shas.shift
       sha2         = shas.shift
-
+      return mustache :error if wikip.page.editable
       if wiki.revert_page(@page, sha1, sha2, commit_message)
         redirect to("/#{@page.escaped_url_path}")
       else
@@ -233,6 +237,7 @@ module Precious
 
     post '/preview' do
       wiki     = wiki_new
+      return mustache :error if wiki.editable
       @name    = params[:page] || "Preview"
       @page    = wiki.preview_page(@name, params[:content], params[:format])
       @content = @page.formatted_data
@@ -370,6 +375,7 @@ module Precious
     end
 
     def update_wiki_page(wiki, page, content, commit, name = nil, format = nil)
+      return if page.editable
       return if !page ||
         ((!content || page.raw_data == content) && page.format == format)
       name    ||= page.name

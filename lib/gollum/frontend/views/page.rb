@@ -26,7 +26,11 @@ module Precious
       end
 
       def editable
-        @editable
+	if @page.wiki.readonly?
+          false
+	else
+          @editable
+	end
       end
 
       def has_header
